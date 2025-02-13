@@ -1,0 +1,25 @@
+---
+title: "LagoNetworkProjectCodeHowTo"
+format: html
+editor: visual
+---
+
+## Lagothrix Network Analysis Methods
+
+### 1: Loading in the Data
+
+```{r}
+
+```
+
+### 2: Create association matrix
+
+```{r}
+
+```
+
+### 3: Analyse Network
+
+```{r}
+
+```
