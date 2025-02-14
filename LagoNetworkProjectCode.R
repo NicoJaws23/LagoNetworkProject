@@ -16,7 +16,7 @@ library(stringr)
 library(dplyr)
 
 dfSelect <- df |>
-  select(Date, Time, Activity, Immediate.Subgroup.Composition)
+  select(Date, Time, Activity,Immediate.Spread, Immediate.Subgroup.Composition)
 
 max_elements <- max(str_count(dfSelect$Immediate.Subgroup.Composition, "/")) + 1
 print(max_elements)
@@ -33,3 +33,12 @@ column_names <- column_names[1:max_elements]
 # Use separate_wider_delim to split the column dynamically
 subgroupsSplit <- dfSelect %>%
   separate_wider_delim(Immediate.Subgroup.Composition, delim = "/", names = column_names, too_few = "align_start", too_many = "drop")
+write.csv(subgroupsSplit, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\subgroupsSplit.csv")
+#Making the pivottables
+
+# Load necessary packages
+library(dplyr)
+library(tidyr)
+getwd()
+subgroupCSV <- read.csv("subgroupsSplit.csv", header = TRUE)
+names(subgroupCSV)
