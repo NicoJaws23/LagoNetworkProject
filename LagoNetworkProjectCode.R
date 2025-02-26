@@ -16,23 +16,17 @@ library(stringr)
 library(dplyr)
 
 dfSelect <- df |>
-  select("dt-time", "Time", "Activity", "Immediate.Spread", "Immediate.Subgroup.Composition")
+  select("dt-time", "Activity", "Immediate.Spread", "Immediate.Subgroup.Composition")
 
 max_elements <- max(str_count(dfSelect$Immediate.Subgroup.Composition, "/")) + 1
 print(max_elements)
 
-# Generate dynamic column names: "Focal", "A", "B", ..., "AN"
-column_names <- c("Focal", LETTERS)  # First 26 letters
-if (max_elements > 27) {
-  column_names <- c(column_names, paste0("A", LETTERS[1:(max_elements - 27)]))
-}
-
-# Ensure the correct number of column names
-column_names <- column_names[1:max_elements]
+# Generate dynamic column names: "Focal", "Subgroup"
+column_names <- c("Focal", "Subgroup")  # First 26 letters
 
 # Use separate_wider_delim to split the column dynamically
 subgroupsSplit <- dfSelect %>%
-  separate_wider_delim(Immediate.Subgroup.Composition, delim = "/", names = column_names, too_few = "align_start", too_many = "drop")
+  separate_wider_delim(Immediate.Subgroup.Composition, delim = "/", names = column_names, too_few = "align_start", too_many = "merge")
 write.csv(subgroupsSplit, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\subgroupsSplit.csv")
 #Making the pivottables
 names(subgroupsSplit)
@@ -41,36 +35,52 @@ library(dplyr)
 library(tidyr)
 library(stringr)
 #Spliting By Group
-groupD <- subgroupsSplit |>
-  filter(str_detect(Focal, '^D'))
 
-groupC <- subgroupsSplit |>
-  filter(str_detect(Focal, '^C'))
+# Load data (assuming df is your dataframe)
+groupD <- subgroupsSplit %>%
+  # Step 1: Filter for focal individuals from group D
+  filter(str_starts(Focal, "D")) %>%
+  # Step 2: Keep only subgroup members whose names start with "D"
+  mutate(Subgroup = str_split(Subgroup, "/")) %>% # Convert to list
+  rowwise() %>%
+  mutate(Subgroup = list(Subgroup[str_starts(Subgroup, "D")])) %>%
+  ungroup() %>%
+  # Step 3: Convert list back to string format
+  mutate(Subgroup = sapply(Subgroup, function(x) paste(x, collapse = "/")))
 
-groupG <- subgroupsSplit |>
-  filter(str_detect(Focal, '^G'))
+groupC <- subgroupsSplit %>%
+  # Step 1: Filter for focal individuals from group D
+  filter(str_starts(Focal, "C")) %>%
+  # Step 2: Keep only subgroup members whose names start with "D"
+  mutate(Subgroup = str_split(Subgroup, "/")) %>% # Convert to list
+  rowwise() %>%
+  mutate(Subgroup = list(Subgroup[str_starts(Subgroup, "C")])) %>%
+  ungroup() %>%
+  # Step 3: Convert list back to string format
+  mutate(Subgroup = sapply(Subgroup, function(x) paste(x, collapse = "/")))
 
-groupP <- subgroupsSplit |>
-  filter(str_detect(Focal, '^P'))
+groupG <- subgroupsSplit %>%
+  # Step 1: Filter for focal individuals from group D
+  filter(str_starts(Focal, "G")) %>%
+  # Step 2: Keep only subgroup members whose names start with "D"
+  mutate(Subgroup = str_split(Subgroup, "/")) %>% # Convert to list
+  rowwise() %>%
+  mutate(Subgroup = list(Subgroup[str_starts(Subgroup, "G")])) %>%
+  ungroup() %>%
+  # Step 3: Convert list back to string format
+  mutate(Subgroup = sapply(Subgroup, function(x) paste(x, collapse = "/")))
 
-# Assuming 'df' is your dataframe
-groupD <- groupD %>%
-  # Select only columns that contain subgroup individuals (A to AN), assuming they are in positions 6:45
-  select(Focal, A:AN) %>%
-  # Pivot the data so that each individual in the subgroups is a separate row
-  pivot_longer(cols = A:AN, names_to = "Subgroup", values_to = "Individual") %>%
-  # Remove any rows with NA values
-  filter(!is.na(Individual)) %>%
-  # Group by Focal and Individual
-  group_by(Focal, Individual) %>%
-  # Count how many times each individual was associated with the focal
-  summarise(Count = n(), .groups = "drop")
+groupP <- subgroupsSplit %>%
+  # Step 1: Filter for focal individuals from group D
+  filter(str_starts(Focal, "P")) %>%
+  # Step 2: Keep only subgroup members whose names start with "D"
+  mutate(Subgroup = str_split(Subgroup, "/")) %>% # Convert to list
+  rowwise() %>%
+  mutate(Subgroup = list(Subgroup[str_starts(Subgroup, "P")])) %>%
+  ungroup() %>%
+  # Step 3: Convert list back to string format
+  mutate(Subgroup = sapply(Subgroup, function(x) paste(x, collapse = "/")))
 
-# View the result
-print(df_long)
-
-# List of known individuals to remove
-exclude_individuals <- c("AF", "AM", "BAM", "SM", "SF", "AFD", "SAM", "JM3", "I1", "I2", "IF2", "IM1", "IF2", "IX1", "J1", "JF", "JF1", "JF2", "JF3", "JM1", "JM2", "JUV", "IM2", "UNK")
 
 # Filter out these individuals from both Focal and Individual columns
 groupD <- groupD %>%
@@ -129,6 +139,6 @@ network_graph <- graph_from_adjacency_matrix(as.matrix(groupD_matrix),
 plot(network_graph,
      vertex.size = 10,  # Node size
      vertex.label.color = "black",
-     edge.width = E(network_graph)$weight / max(E(network_graph)$weight) * 5,  # Scale edge width by association strength
+     edge.width = E(network_graph)$weight / max(E(network_graph)$weight) * 10,  # Scale edge width by association strength
      edge.color = "gray50")
 
