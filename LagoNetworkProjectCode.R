@@ -18,8 +18,6 @@ library(dplyr)
 dfSelect <- df |>
   select("dt-time", "Activity", "Immediate.Spread", "Immediate.Subgroup.Composition")
 
-max_elements <- max(str_count(dfSelect$Immediate.Subgroup.Composition, "/")) + 1
-print(max_elements)
 
 # Generate dynamic column names: "Focal", "Subgroup"
 column_names <- c("Focal", "Subgroup")  # First 26 letters
@@ -28,117 +26,97 @@ column_names <- c("Focal", "Subgroup")  # First 26 letters
 subgroupsSplit <- dfSelect %>%
   separate_wider_delim(Immediate.Subgroup.Composition, delim = "/", names = column_names, too_few = "align_start", too_many = "merge")
 write.csv(subgroupsSplit, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\subgroupsSplit.csv")
-#Making the pivottables
+
 names(subgroupsSplit)
+
 # Load necessary packages
 library(dplyr)
 library(tidyr)
 library(stringr)
 #Spliting By Group
-
-# Load data (assuming df is your dataframe)
-groupD <- subgroupsSplit %>%
+groupSplit <- function(df, groupID, delim){
   # Step 1: Filter for focal individuals from group D
-  filter(str_starts(Focal, "D")) %>%
+  fill <- filter(df, str_starts(Focal, groupID))
   # Step 2: Keep only subgroup members whose names start with "D"
-  mutate(Subgroup = str_split(Subgroup, "/")) %>% # Convert to list
-  rowwise() %>%
-  mutate(Subgroup = list(Subgroup[str_starts(Subgroup, "D")])) %>%
-  ungroup() %>%
+  mutate(fill, Subgroup = str_split(Subgroup, delim)) # Convert to list
+  rowwise(fill)
+  mutate(fill, Subgroup = list(Subgroup[str_starts(Subgroup, groupID)]))
+  ungroup(fill)
   # Step 3: Convert list back to string format
-  mutate(Subgroup = sapply(Subgroup, function(x) paste(x, collapse = "/")))
+  mutate(fill, Subgroup = sapply(Subgroup, function(x) paste(x, collapse = delim)))
+  return(fill)
+}
+groupD <- groupSplit(subgroupsSplit, "D", "/")
+write.csv(groupD, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\groupD.csv")
+groupC <- groupSplit(subgroupsSplit, "C", "/")
+groupG <- groupSplit(subgroupsSplit, "G", "/")
+groupP <- groupSplit(subgroupsSplit, "P", "/")
 
-groupC <- subgroupsSplit %>%
-  # Step 1: Filter for focal individuals from group D
-  filter(str_starts(Focal, "C")) %>%
-  # Step 2: Keep only subgroup members whose names start with "D"
-  mutate(Subgroup = str_split(Subgroup, "/")) %>% # Convert to list
-  rowwise() %>%
-  mutate(Subgroup = list(Subgroup[str_starts(Subgroup, "C")])) %>%
-  ungroup() %>%
-  # Step 3: Convert list back to string format
-  mutate(Subgroup = sapply(Subgroup, function(x) paste(x, collapse = "/")))
+#Number of scans
+library(dplyr)
+library(tidyr)
 
-groupG <- subgroupsSplit %>%
-  # Step 1: Filter for focal individuals from group D
-  filter(str_starts(Focal, "G")) %>%
-  # Step 2: Keep only subgroup members whose names start with "D"
-  mutate(Subgroup = str_split(Subgroup, "/")) %>% # Convert to list
-  rowwise() %>%
-  mutate(Subgroup = list(Subgroup[str_starts(Subgroup, "G")])) %>%
-  ungroup() %>%
-  # Step 3: Convert list back to string format
-  mutate(Subgroup = sapply(Subgroup, function(x) paste(x, collapse = "/")))
+format_focal_data <- function(df) {
+  # Step 1: Expand subgroup into separate rows
+  df_long <- df |> 
+    separate_rows(Subgroup, sep = "/") |>  
+    filter(!is.na(Subgroup) & Subgroup != "")  # Remove empty values
+  
+  # Step 2: Count the total number of times each focal appears in the dataset
+  focal_counts <- df |> 
+    count(Focal, name = "NumberOfFocalScans")
+  
+  # Step 3: Merge with subgroup and keep only relevant columns
+  final_df <- df_long |> 
+    left_join(focal_counts, by = "Focal") |> 
+    select(Focal, Subgroup, NumberOfFocalScans) |> 
+    arrange(Focal, Subgroup)  # Sort for better readability
+  
+  return(final_df)
+}
 
-groupP <- subgroupsSplit %>%
-  # Step 1: Filter for focal individuals from group D
-  filter(str_starts(Focal, "P")) %>%
-  # Step 2: Keep only subgroup members whose names start with "D"
-  mutate(Subgroup = str_split(Subgroup, "/")) %>% # Convert to list
-  rowwise() %>%
-  mutate(Subgroup = list(Subgroup[str_starts(Subgroup, "P")])) %>%
-  ungroup() %>%
-  # Step 3: Convert list back to string format
-  mutate(Subgroup = sapply(Subgroup, function(x) paste(x, collapse = "/")))
+groupDfocals <- format_focal_data(groupD)
 
+#Get scan/cooccurance ratios
+together <- function(df) {
+  # Step 1: Expand Subgroup column into separate rows
+  df_long <- df |>
+    separate_rows(Subgroup, sep = "/") |>  # Split subgroup into separate rows
+    filter(Subgroup != "")  # Remove empty values from split
+  
+  # Step 2: Count total scans for each individual (based on unique occurrences in the dataset)
+  total_scans <- df_long |>
+    select(Focal) |>
+    distinct() |>
+    count(Focal, name = "Total_Scans")
+  
+  subgroup_scans <- df_long |>
+    select(Subgroup) |>
+    rename(Focal = Subgroup) |>
+    distinct() |>
+    count(Focal, name = "Total_Scans")
+  
+  # Combine total scans correctly (avoiding double counting)
+  total_scans <- bind_rows(total_scans, subgroup_scans) |>
+    group_by(Focal) |>
+    summarise(Total_Scans = sum(Total_Scans, na.rm = TRUE))  # Sum distinct occurrences
+  
+  # Step 3: Count co-occurrences (ensuring symmetry)
+  co_occurrences <- df_long |>
+    count(Focal, Subgroup, name = "Cooccurrence")
+  
+  co_occurrences_sym <- co_occurrences |>
+    rename(Partner = Subgroup) |>
+    bind_rows(co_occurrences |> rename(Focal = Subgroup, Partner = Focal)) |>
+    group_by(Focal, Partner) |>
+    summarise(Cooccurrence = sum(Cooccurrence), .groups = "drop")  # Summing to ensure symmetry
+  
+  # Step 4: Merge total scans count with co-occurrence count
+  final_df <- co_occurrences_sym |>
+    left_join(total_scans, by = "Focal") |>
+    arrange(Focal, Partner)  # Sort for readability
+  
+  return(final_df)
+}
 
-# Filter out these individuals from both Focal and Individual columns
-groupD <- groupD %>%
-  filter(!Focal %in% exclude_individuals,    # Remove excluded individuals from the Focal column
-         !Individual %in% exclude_individuals)  # Remove excluded individuals from the Individual column
-
-# View the filtered result
-print(df_filtered)
-NamesFocal <- df_long |>
-  group_by(Focal) |>
-  summarise(n_case = n())
-
-NamesIndiv <- df_long |>
-  group_by(Individual) |>
-  summarize(n_cases = n())
-
-#Association MAtrix
-
-
-# Ensure dataset is symmetrical by duplicating rows with reversed pairs
-groupD <- groupD %>%
-  rename(Individual1 = Focal, Individual2 = Individual) %>%
-  bind_rows(groupD %>% rename(Individual1 = Individual, Individual2 = Focal)) %>%
-  group_by(Individual1, Individual2) %>% 
-  summarise(Count = sum(Count), .groups = "drop")  # Sum counts to avoid discrepancies
-
-groupD <- groupD %>%
-  filter(!is.na(Individual1), Individual1 != "", !is.na(Individual2), Individual2 != "")
-
-# Convert to a wide association matrix
-groupD_matrix <- groupD %>%
-  pivot_wider(names_from = Individual2, values_from = Count, values_fill = list(Count = 0)) %>%
-  column_to_rownames("Individual1")  # Convert first column into row names
-
-# View the matrix
-print(association_matrix)
-
-library(pheatmap)
-
-# Create a heatmap of the association matrix
-pheatmap(groupD_matrix,
-         cluster_rows = TRUE,  # Cluster individuals based on similarity
-         cluster_cols = TRUE,
-         display_numbers = TRUE,  # Show actual counts
-         color = colorRampPalette(c("white", "blue"))(100))  # Gradient from white to blue
-
-library(igraph)
-
-# Convert association matrix to an adjacency matrix
-network_graph <- graph_from_adjacency_matrix(as.matrix(groupD_matrix), 
-                                             mode = "undirected", 
-                                             weighted = TRUE, 
-                                             diag = FALSE)
-
-# Plot the network
-plot(network_graph,
-     vertex.size = 10,  # Node size
-     vertex.label.color = "black",
-     edge.width = E(network_graph)$weight / max(E(network_graph)$weight) * 10,  # Scale edge width by association strength
-     edge.color = "gray50")
-
+# print(sri_result)
