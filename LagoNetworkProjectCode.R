@@ -10,6 +10,7 @@ gs4_auth(toekn = drive_token()) #apply login credentials
 #gs4_get(f) #get info for the google sheet
 df <- read_sheet("https://docs.google.com/spreadsheets/d/1MPXNVFS7ZSwvdfeuEhEZgGfodv9vFEJntWRW8LiKrrg/edit?gid=1462960726#gid=1462960726") #read in google sheet from drive
 names(df)
+
 #Step 2: Filter down the data
 library(tidyverse)
 library(stringr)
@@ -47,10 +48,16 @@ groupSplit <- function(df, groupID, delim){
   return(fill)
 }
 groupD <- groupSplit(subgroupsSplit, "D", "/")
-write.csv(groupD, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\groupD.csv")
 groupC <- groupSplit(subgroupsSplit, "C", "/")
 groupG <- groupSplit(subgroupsSplit, "G", "/")
 groupP <- groupSplit(subgroupsSplit, "P", "/")
+
+#Count number of focals
+dFocals <- groupD |>
+  group_by(Focal) |>
+  summarise(count = n())
+
+
 
 #Number of scans
 library(dplyr)
