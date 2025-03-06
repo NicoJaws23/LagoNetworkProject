@@ -1,6 +1,6 @@
 #Just group D to mess with code
 library(tidyverse)
-df <- read_csv("C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\groupD.csv")
+df <- read_csv("C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\Aug2014-Dec2015wGPS_SubgroupsFinal-RECOVERED.csv")
 IDs <- read_csv("C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\IDs.csv")
 #Calculate the SRI
 library(dplyr)
@@ -10,9 +10,26 @@ names(IDs)
 d <- IDs |>
   filter(Group == "D")
 
-df <- df %>%
-  mutate(Subgroup = gsub("/$", "", Subgroup))
+dfSelect <- df |>
+  select("dt-time", "Activity", "Immediate.Spread", "Immediate.Subgroup.Composition")
 
+#dfSelect <- dfSelect %>%
+  #mutate(Immediate.Subgroup.Composition = gsub("/$", "", Immediate.Subgroup.Composition)) |>
+  #separate_rows(Immediate.Subgroup.Composition, sep = "/") |>
+  #filter(Immediate.Subgroup.Composition %in% d$ID) #Remove anyone not in group D or with ID
+
+max_elements <- max(str_count(dfSelect$Immediate.Subgroup.Composition, "/"))
+print(max_elements)
+# Generate dynamic column names: "Focal", "A", "B", ..., "AN"column_names <- c("Focal", LETTERS)  
+#First 26 letters
+if (max_elements > 27) {  
+  column_names <- c(column_names, paste0("A", LETTERS[1:(max_elements - 27)]))
+  }
+# Ensure the correct number of column names
+column_names <- column_names[1:max_elements]
+# Use separate_wider_delim to split the column dynamically
+subgroupsSplit <- dfSelect %>%  
+  separate_wider_delim(Immediate.Subgroup.Composition, delim = "/", names = column_names, too_few = "align_start", too_many = "drop")
 
 # Separate subgroup members into individual rows
 df_expanded <- df %>%
