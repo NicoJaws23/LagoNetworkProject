@@ -235,3 +235,48 @@ ggraph(g, layout = "nicely") +
   geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
   theme_void() +
   labs(title = "Social Network with Edge Strengths")
+
+
+#Messing with group D data
+# Load your adjacency matrix from CSV file
+adjacency_matrix <- read.csv("C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\GroupD_sri_adjacency_matrix.csv", row.names = 1)
+head(adjacency_matrix)
+
+adjacency_matrix <- as.matrix(adjacency_matrix)  # Ensure it's a matrix
+
+# Convert the adjacency matrix to long format (with row and column names)
+adj_long <- as.data.frame(as.table(adjacency_matrix))
+
+# Rename columns for clarity
+colnames(adj_long) <- c("Focal", "Subgroup", "Interaction")
+
+# Filter for non-zero interactions
+adj_long <- adj_long %>%
+  filter(Interaction > 0)
+
+# View the resulting long format data
+head(adj_long)
+
+# Get the default priors for the model
+priors1 <- c(
+  set_prior("normal(0, 1)", class = "b"),   # Adjust this prior as needed
+  set_prior("normal(0, 1)", class = "Intercept")
+)
+print(priors)
+
+write.csv(adj_long, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\GroupD_adjLong.csv")
+
+str(adj_long)  # Check the structure of the data
+adj_long$Focal <- as.factor(adj_long$Focal)
+adj_long$Subgroup <- as.factor(adj_long$Subgroup)
+adj_long$Interaction <- as.numeric(adj_long$Interaction)  # Ensure Interaction is numeric
+colnames(adj_long) <- gsub(" ", "_", colnames(adj_long))  # Replace spaces with underscores
+
+fit_edge <- bison_model(
+  Interaction ~ Focal + Subgroup,  # A simple model with just the variables
+  data = adj_long, 
+  model_type = "binary", 
+  priors = priors1
+)
+install.packages("bisonR")  # Reinstall the package
+
