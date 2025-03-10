@@ -127,3 +127,111 @@ together <- function(df) {
 }
 
 # print(sri_result)
+
+install.packages("cmdstanr", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
+cmdstanr::install_cmdstan()
+install.packages("remotes")
+remotes::install_github("JHart96/bisonR")
+
+library(bisonR)
+library(dplyr)
+sim_data <- simulate_bison_model("binary", aggregated = TRUE)
+df <- sim_data$df_sim
+priors <- get_default_priors("binary")
+fit_edge <- bison_model(
+  (event | duration) ~ dyad(node_1_id, node_2_id), 
+  data = df, 
+  model_type = "binary",
+  priors = priors
+)
+summary(fit_edge)
+plot(fit_edge)
+
+install.packages("cmdstanr", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
+install.packages("devtools")
+library(devtools)
+#remotes::install_github("JHart96/bisonR")
+
+
+
+#check cmdstan
+
+#install.packages("cmdstanr", repos = c("https://mc-stan.org/r-packages/", getOption("repos")))
+
+library(cmdstanr)
+check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)
+install_cmdstan()
+set_cmdstan_path(path = NULL)
+set_cmdstan_path(path = "C:/Users/Jawor/.cmdstan/cmdstan-2.36.0")
+
+library(bisonR)
+library(dplyr)
+library(brms)
+library(Rcpp)
+library(cmdstanr)
+library(tidyr)
+library(readxl)
+library(igraph)
+library(ggplot2)
+
+sim_data <- simulate_bison_model("binary", aggregated = TRUE)
+df <- sim_data$df_sim
+priors <- get_default_priors("binary")
+fit_edge <- bison_model(
+  (event | duration) ~ dyad(node_1_id, node_2_id), 
+  data = df, 
+  model_type = "binary",
+  priors = priors
+)
+summary(fit_edge)
+plot(fit_edge)
+
+library(ggplot2)
+library(tidyr)
+
+df_effects <- as.data.frame(fit_edge$edge_samples)
+colnames(df_effects) <- fit_edge$dyad_names  # Assign dyad names to columns
+
+# Compute summary statistics (median, 5%, 95%)
+df_summary <- data.frame(
+  Dyad = colnames(df_effects),
+  Median = apply(df_effects, 2, median),
+  Lower = apply(df_effects, 2, quantile, 0.05),
+  Upper = apply(df_effects, 2, quantile, 0.95)
+)
+
+print(df_summary)
+
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+
+df_plot <- df_summary %>%
+  separate(Dyad, into = c("node_1", "node_2"), sep = " <-> ", convert = TRUE)
+
+ggplot(df_plot, aes(x = as.factor(node_1), y = as.factor(node_2), fill = Median)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", midpoint = 0.5) +
+  theme_minimal() +
+  labs(title = "Estimated Dyadic Interaction Probabilities",
+       x = "Node 1",
+       y = "Node 2",
+       fill = "Probability")
+
+library(igraph)
+library(ggraph)
+
+# Convert summary data to edge list format
+edges <- df_summary %>%
+  separate(Dyad, into = c("from", "to"), sep = " <-> ", convert = TRUE) 
+
+# Create graph object
+g <- graph_from_data_frame(edges, directed = FALSE)
+
+# Plot network
+ggraph(g, layout = "nicely") +
+  geom_edge_link(aes(edge_alpha = Median), show.legend = TRUE) +
+  geom_node_point(size = 5, color = "darkred") +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  theme_void() +
+  labs(title = "Social Network with Edge Strengths")
