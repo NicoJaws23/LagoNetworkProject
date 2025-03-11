@@ -131,17 +131,48 @@ g <- graph_from_adjacency_matrix(adj_matrix, mode = "undirected", weighted = TRU
 centrality_scores <- eigen_centrality(g, directed = FALSE)$vector
 # Assuming you have a vector of individual names or IDs
 individuals <- d$ID # Replace with actual names or IDs
-
+names(g)
 # Combine centrality scores with individual names
 centrality_df <- data.frame(Individual = individuals, Centrality = centrality_scores, row.names = NULL)
-plot(g)
+min_sri <- min(E(g)$weight)
+max_sri <- max(E(g)$weight)
+normalized_weights <- (E(g)$weight - min_sri) / (max_sri - min_sri)
+edge_colors <- colorRampPalette(c("lightblue", "royalblue", "darkblue"))(100)
+edge_color_indices <- round(normalized_weights * 99) + 1
+# Map sex to shape - IMPORTANT: use vertex "shape" attribute directly
+V(g)$shape <- sapply(V(g)$name, function(name) {
+  row <- which(d$ID == name)
+  if(d$Sex[row] == "F") {
+    "square"
+  } else {
+    "circle"
+  }
+})
+
+plot(g,
+     # Set edge width based on SRI values
+     edge.width = E(g)$weight * 5,
+     
+     # Set edge color based on SRI values
+     edge.color = edge_colors[edge_color_indices],
+     edge.curved = 0.2,
+     # Node styling
+     vertex.size = 30,
+     vertex.color = "lightgrey",
+     vertex.label = V(g)$name,
+     vertex.label.cex = 1,
+     
+     # Overall layout
+     layout = layout_with_fr(g, niter = 1000, area = vcount(g)^3.5, repulserad = vcount(g)^6),
+     main = "Social Network Based on SRI Values"
+)
 write.csv(centrality_df, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\GroupD_centrality.csv")
 
 # Get the eigenvector centrality scores
 centrality_scores <- eigen_centrality(g, directed = FALSE)$vector
 
 # Create a vector for node sizes (scaled by centrality)
-node_size <- centrality_scores * 50  # Adjust the multiplier for desired size
+node_size <- centrality_scores * 15  # Adjust the multiplier for desired size
 
 # Create a vector for node colors (scaled by centrality)
 node_color <- heat.colors(length(centrality_scores))[rank(centrality_scores)]
