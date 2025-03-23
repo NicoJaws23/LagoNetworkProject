@@ -185,3 +185,13 @@ plot(g,
      edge.width = 1,               # Edge width
      main = "Network Visualization with Eigenvector Centrality"
 )
+
+par(mfrow = c(1, 3))
+star <- make_graph(edges = c(1,2, 1,3, 1,4, 1,5, 1,6, 1,7, 1,8), n = 8, directed = FALSE)
+plot.igraph(star)
+
+circle <- make_graph(c(1,2, 2,3, 3,4, 4,5, 5,6, 6,7, 7,8, 8,1), n = 8, directed = FALSE)
+plot.igraph(circle)
+
+kite <- make_graph(c(1,2, 1,3, 2,3, 1,4, 4,5, 5,6, 5,7, 5,8, 6,7, 6,8, 7,8), n = 8, directed = FALSE)
+plot.igraph(kite)
