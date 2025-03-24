@@ -10,11 +10,13 @@ d <- IDs |>
   filter(Group == "D")
 
 df <- df |>
-  select("Date", "Month", "Year", "Immediate.Subgroup.Composition")
+  select("dt-time", "Date", "Month", "Year", "Immediate.Subgroup.Composition")
 
 # Remove trailing slashes (just in case)
 df <- df %>%
-  mutate(Immediate.Subgroup.Composition = gsub("/$", "", Immediate.Subgroup.Composition))
+  mutate(Immediate.Subgroup.Composition = gsub("/$", "", Immediate.Subgroup.Composition)) |>
+  #mutate(dt-time = as.Date(dt-time), Date = as.Date(Date)) |>
+  mutate(`dt-time` = format(mdy_hm(`dt-time`), "%Y-%m-%d %H:%M"), Date = format(mdy(Date), "%Y-%m-%d"))
 
 # Count max subgroup size (i.e., max number of individuals in any row)
 max_cols <- max(str_count(df$Immediate.Subgroup.Composition, "/")) + 1  # +1 for the focal
@@ -26,7 +28,7 @@ column_names <- c("Focal", paste0("A", seq_len(max_cols - 1)))  # A1, A2, A3, ..
 df_expanded <- df %>%
   separate(Immediate.Subgroup.Composition, into = column_names, sep = "/", fill = "right", extra = "drop") %>%
   mutate(
-    Date = as.Date(Date, format = "%m/%d/%Y"),  # Ensure Date is properly formatted
+    Date = as.Date(Date),  # Ensure Date is properly formatted
     timePeriod = case_when(
       (Date >= as.Date("2014-08-06") & Date <= as.Date("2014-12-06")) ~ 1,
       (Date >= as.Date("2014-12-07") & Date <= as.Date("2015-04-07")) ~ 2,
