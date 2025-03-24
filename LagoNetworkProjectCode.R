@@ -4,7 +4,7 @@ library(googledrive)
 library(googlesheets4)
 
 drive_auth() #login access to Google Drive
-gs4_auth(toekn = drive_token()) #apply login credentials
+gs4_auth(token = drive_token()) #apply login credentials
 #f <- gs4_find() %>% #pull in the subgroup sheet
   #filter(name == "Aug2014-Dec2015wGPS_SubgroupsFinal-RECOVERED")
 #gs4_get(f) #get info for the google sheet
@@ -17,7 +17,7 @@ library(stringr)
 library(dplyr)
 
 dfSelect <- df |>
-  select("dt-time", "Activity", "Immediate.Spread", "Immediate.Subgroup.Composition")
+  select("Date", "Month", "Year", "Immediate.Subgroup.Composition")
 
 
 # Generate dynamic column names: "Focal", "Subgroup"
@@ -25,7 +25,16 @@ column_names <- c("Focal", "Subgroup")  # First 26 letters
 
 # Use separate_wider_delim to split the column dynamically
 subgroupsSplit <- dfSelect %>%
-  separate_wider_delim(Immediate.Subgroup.Composition, delim = "/", names = column_names, too_few = "align_start", too_many = "merge")
+  separate_wider_delim(Immediate.Subgroup.Composition, delim = "/", names = column_names, too_few = "align_start", too_many = "merge") |>
+  mutate(timePeriod = case_when(
+    (Date >= as.Date("2014-08-06") & Date <= as.Date("2014-12-06")) ~ 1,
+    (Date >= as.Date("2014-12-07") & Date <= as.Date("2015-04-07")) ~ 2,
+    (Date >= as.Date("2015-04-08") & Date <= as.Date("2015-08-09")) ~ 3,
+    (Date >= as.Date("2015-08-09") & Date <= as.Date("2015-12-14")) ~ 4,
+    TRUE ~ NA_real_  # Assign NA to dates outside the given ranges
+  ))
+
+names(subgroupsSplit)
 write.csv(subgroupsSplit, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\subgroupsSplit.csv")
 
 names(subgroupsSplit)

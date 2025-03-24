@@ -10,7 +10,7 @@ d <- IDs |>
   filter(Group == "D")
 
 df <- df |>
-  select("dt-time", "Month", "Year", "Activity", "Immediate.Spread", "Immediate.Subgroup.Composition")
+  select("Date", "Month", "Year", "Immediate.Subgroup.Composition")
 
 # Remove trailing slashes (just in case)
 df <- df %>%
@@ -24,7 +24,20 @@ column_names <- c("Focal", paste0("A", seq_len(max_cols - 1)))  # A1, A2, A3, ..
 
 # Split into separate columns dynamically
 df_expanded <- df %>%
-  separate(Immediate.Subgroup.Composition, into = column_names, sep = "/", fill = "right", extra = "drop")
+  separate(Immediate.Subgroup.Composition, into = column_names, sep = "/", fill = "right", extra = "drop") %>%
+  mutate(
+    Date = as.Date(Date, format = "%m/%d/%Y"),  # Ensure Date is properly formatted
+    timePeriod = case_when(
+      (Date >= as.Date("2014-08-06") & Date <= as.Date("2014-12-06")) ~ 1,
+      (Date >= as.Date("2014-12-07") & Date <= as.Date("2015-04-07")) ~ 2,
+      (Date >= as.Date("2015-04-08") & Date <= as.Date("2015-08-08")) ~ 3,
+      (Date >= as.Date("2015-08-09") & Date <= as.Date("2015-12-14")) ~ 4,
+      TRUE ~ NA_real_  # Assign NA to dates outside the given ranges
+    )
+  ) |>
+  relocate(timePeriod, .before = 1)  # Moves 'timePeriod' to the first position
+
+  
 
 #monthlyFocals <- df_filtered |>
   #group_by(Month, Year) |>
@@ -185,13 +198,3 @@ plot(g,
      edge.width = 1,               # Edge width
      main = "Network Visualization with Eigenvector Centrality"
 )
-
-par(mfrow = c(1, 3))
-star <- make_graph(edges = c(1,2, 1,3, 1,4, 1,5, 1,6, 1,7, 1,8), n = 8, directed = FALSE)
-plot.igraph(star)
-
-circle <- make_graph(c(1,2, 2,3, 3,4, 4,5, 5,6, 6,7, 7,8, 8,1), n = 8, directed = FALSE)
-plot.igraph(circle)
-
-kite <- make_graph(c(1,2, 1,3, 2,3, 1,4, 4,5, 5,6, 5,7, 5,8, 6,7, 6,8, 7,8), n = 8, directed = FALSE)
-plot.igraph(kite)
