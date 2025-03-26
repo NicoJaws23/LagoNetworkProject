@@ -1,12 +1,9 @@
 #Group D Code pt 2
-library(dplyr)
-library(tidyr)
-library(igraph)
-
-library(dplyr)
-library(tidyr)
+library(tidyverse)
 library(purrr)
-
+library(igraph)
+library(rptR)
+library(lme4)
 # Convert wide format to long format
 df_long <- df %>%
   pivot_longer(cols = starts_with("A"), values_to = "Individual", names_to = "ID") %>%
@@ -76,13 +73,11 @@ g <- graph_from_adjacency_matrix(adj_matrix, mode = "undirected", weighted = TRU
 
 # Calculate Centrality Measures
 eigen_centrality <- eigen_centrality(g)$vector
-betweenness_centrality <- betweenness(g, directed = FALSE, normalized = TRUE)
 
 # Store results
 centrality_results <- data.frame(
   Individual = names(eigen_centrality),
-  Eigenvector = eigen_centrality,
-  Betweenness = betweenness_centrality
+  Eigenvector = eigen_centrality
 )
 
 # Print centrality results
@@ -176,13 +171,11 @@ d1g <- graph_from_adjacency_matrix(d1adj_matrix, mode = "undirected", weighted =
 
 # Calculate Centrality Measures
 d1eigen_centrality <- eigen_centrality(d1g)$vector
-d1betweenness_centrality <- betweenness(d1g, directed = FALSE, normalized = TRUE)
 
 # Store results
 d1centrality_results <- data.frame(
   Individual = names(d1eigen_centrality),
   Eigenvector = d1eigen_centrality,
-  Betweenness = d1betweenness_centrality,
   timePeriod = 1
 )
 
@@ -265,13 +258,11 @@ d2g <- graph_from_adjacency_matrix(d2adj_matrix, mode = "undirected", weighted =
 
 # Calculate Centrality Measures
 d2eigen_centrality <- eigen_centrality(d2g)$vector
-d2betweenness_centrality <- betweenness(d2g, directed = FALSE, normalized = TRUE)
 
 # Store results
 d2centrality_results <- data.frame(
   Individual = names(d2eigen_centrality),
   Eigenvector = d2eigen_centrality,
-  Betweenness = d2betweenness_centrality,
   timePeriod = 2
 )
 
@@ -354,13 +345,11 @@ d3g <- graph_from_adjacency_matrix(d3adj_matrix, mode = "undirected", weighted =
 
 # Calculate Centrality Measures
 d3eigen_centrality <- eigen_centrality(d3g)$vector
-d3betweenness_centrality <- betweenness(d3g, directed = FALSE, normalized = TRUE)
 
 # Store results
 d3centrality_results <- data.frame(
   Individual = names(d3eigen_centrality),
   Eigenvector = d3eigen_centrality,
-  Betweenness = d3betweenness_centrality,
   timePeriod = 3
 )
 
@@ -443,13 +432,11 @@ d4g <- graph_from_adjacency_matrix(d4adj_matrix, mode = "undirected", weighted =
 
 # Calculate Centrality Measures
 d4eigen_centrality <- eigen_centrality(d4g)$vector
-d4betweenness_centrality <- betweenness(d4g, directed = FALSE, normalized = TRUE)
 
 # Store results
 d4centrality_results <- data.frame(
   Individual = names(d4eigen_centrality),
   Eigenvector = d4eigen_centrality,
-  Betweenness = d4betweenness_centrality,
   timePeriod = 4
 )
 
@@ -467,14 +454,20 @@ d4centrality_results <- d4centrality_results %>%
 
 #Binding rows
 allTime <- bind_rows(list(d1centrality_results, d2centrality_results, d3centrality_results, d4centrality_results))
-
+allTime <- allTime |>
+  mutate(age.sex = factor(paste(Sex, ADULT, sep = "_")), Individual = factor(Individual))
 #rprR
-library(rptR)
-library(rptR)
 
 # Run repeatability analysis on centrality measures
 rpt_eigen <- rpt(Eigenvector ~ (1 | Individual) + (1|timePeriod), grname = "Individual", data = allTime, datatype = "Gaussian")
-rpt_betweenness <- rpt(Betweenness ~ (1 | Individual) + (1|timePeriod), grname = "Individual", data = allTime, datatype = "Gaussian")
 
 summary(rpt_eigen)
-summary(rpt_betweenness)
+
+#Testing predictors of centrality
+egGLM <- lmer(Eigenvector ~ age.sex + (1|Individual), data = allTime)
+egGLM
+plot(egGLM)
+summary(egGLM)
+
+anova(egGLM, lmer(Eigenvector ~ (1 | Individual), data = allTime))
+
