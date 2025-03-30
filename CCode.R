@@ -502,7 +502,7 @@ write.csv(d4centrality_results, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetwork
 
 
 #Binding rows
-allTime <- bind_rows(list(d1centrality_results, d3centrality_results, d4centrality_results))
+allTime <- bind_rows(list(d1centrality_results, d3centrality_results))
 allTime <- allTime |>
   mutate(age.sex = factor(paste(Sex, ADULT, sep = "_")), Individual = factor(Individual))
 write.csv(allTime, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\Exports\\groupC_CombinedCent.csv")
@@ -521,11 +521,38 @@ results <- data.frame(
   P_value = rpt_eigen$P$LRT_P
 )
 write.csv(results, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\Exports\\groupC_rpt_results.csv", row.names = FALSE)
+
+allTimeHigh <- allTime |>
+  filter(Eigenvector >= 0.5)
+m <- rpt(Eigenvector ~ (1 | Individual) + (1|timePeriod), grname = "Individual", data = allTimeHigh, datatype = "Gaussian")
+
+summary(m)
+allTimeLow <- allTime |>
+  filter(Eigenvector < 0.5)
+l <- rpt(Eigenvector ~ (1 | Individual) + (1|timePeriod), grname = "Individual", data = allTimeLow, datatype = "Gaussian")
+
+summary(l)
 #Testing predictors of centrality
-egGLM <- lmer(Eigenvector ~ age.sex + (1|Individual), data = allTime)
-egGLM
-plot(egGLM)
-summary(egGLM)
+null <- lmer(Eigenvector ~ (1|Individual), data = allTime)
+summary(null)
 
-anova(egGLM, lmer(Eigenvector ~ (1 | Individual), data = allTime))
+agesex <- lmer(Eigenvector ~ age.sex + (1|Individual), data = allTime)
+summary(agesex)
 
+age <- lmer(Eigenvector ~ ADULT + (1|Individual), data = allTime)
+summary(age)
+
+sex <- lmer(Eigenvector ~ Sex + (1|Individual), data = allTime)
+summary(sex)
+
+anova(null, agesex, age, sex)
+
+glmResults <- data.frame(
+  Trait = names(rpt_eigen$R),
+  Repeatability = rpt_eigen$R$Individual,
+  CI_lower = rpt_eigen$CI_emp$`2.5%`,
+  CI_upper = rpt_eigen$CI_emp$`97.5%`,
+  P_value = rpt_eigen$P$LRT_P
+)
+q <- -anova(egGLM, lmer(Eigenvector ~ age.sex + (1 | Individual), data = allTime))
+summary(q)

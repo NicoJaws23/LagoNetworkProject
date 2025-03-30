@@ -502,15 +502,15 @@ write.csv(d4centrality_results, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetwork
 
 
 #Binding rows
-allTime <- bind_rows(list(d1centrality_results, d2centrality_results, d3centrality_results, d4centrality_results))
+allTime <- bind_rows(list(d1centrality_results, d2centrality_results, d3centrality_results))
 allTime <- allTime |>
-  mutate(age.sex = factor(paste(Sex, ADULT, sep = "_")), Individual = factor(Individual))
+  mutate(age.sex = factor(paste(Sex, ADULT, sep = "_")), Individual = factor(Individual), timePeriod= as.factor(timePeriod))
 write.csv(allTime, "C:\\Users\\Jawor\\Desktop\\ANT392J\\LagoNetworkProject\\Exports\\groupG_CombinedCent.csv")
 
 #rprR
 
 # Run repeatability analysis on centrality measures
-rpt_eigen <- rpt(Eigenvector ~ (1 | Individual) + (1|timePeriod), grname = "Individual", data = allTime, datatype = "Gaussian")
+rpt_eigen <- rpt(Eigenvector ~ (1|timePeriod) + (1|Individual), grname = "Individual", data = allTime, datatype = "Gaussian")
 
 summary(rpt_eigen)
 results <- data.frame(
