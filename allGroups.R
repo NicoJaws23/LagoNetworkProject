@@ -15,20 +15,28 @@ c <- c |>
 d <- d |>
   mutate(GroupSize = 16, sex.age = paste(Sex, ADULT, sep = "_"))
 g <- g |>
-  mutate(GroupSize = 23, sex.age = paste(Sex, ADULT, sep = "_"))
+  mutate(GroupSize = 26, sex.age = paste(Sex, ADULT, sep = "_"))
 p <- p |>
   mutate(GroupSize = 15, sex.age = paste(Sex, ADULT, sep = "_"))
 
 allGroups <- bind_rows(c, d, g, p)
-
+mean(p$Eigenvector)
 allGroups <-allGroups |>
-  mutate(GroupSize = as.factor(GroupSize), sex.age = as.factor(sex.age))
+  mutate(GroupSize = as.numeric(GroupSize), sex.age = as.factor(sex.age), Individual = as.factor(Individual))
 
-m1 <- lm(Eigenvector ~ GroupSize, data = allGroups)
-summary(m1)
-plot(m1)
+m1 <- cor.test(allGroups$Eigenvector, allGroups$GroupSize, method = "spearman")
+m1
 
+ggplot(data = allGroups, mapping = aes(x = as.factor(GroupSize), y = Eigenvector)) +
+  geom_boxplot() +
+  ggtitle("Eigenvector Centrality and Group Size") +
+  xlab(label = "Group Size") +
+  ylab(label = "Eigenvector Score")
+  
+l
 m2 <- lmer(Eigenvector ~ (1|Group), data = allGroups)
+summary(m2)
+GroupSizem2 <- lmer(Eigenvector ~ (1|Group), data = allGroups)
 summary(m2)
 
 
