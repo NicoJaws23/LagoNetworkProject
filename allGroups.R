@@ -67,3 +67,15 @@ ggplot(data = allGroups, mapping = aes(x = Group, y = Eigenvector, color = Indiv
   scale_shape_manual(values = c("M" = 17, "F" = 15)) +  # Assigns triangle to males, square to females
   labs(x = "Group ID", y = "Eigenvector Score") +
   theme_minimal()
+
+library(MuMIn)
+full <- lm(data = allGroups, Eigenvector ~ sex.age + Sex + ADULT + 1, na.action = na.fail)
+mods <- dredge(full)
+mods.avg <- summary(model.avg(mods, subset = delta <= 4, fit = TRUE))
+
+aictab(models, mod.names)
+
+mods.avg$msTable
+
+m <- lm(data = allGroups, Eigenvector ~ sex.age + Sex + ADULT + 1, na.action = na.fail)
+summary(m)
